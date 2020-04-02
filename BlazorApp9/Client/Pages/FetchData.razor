@@ -1,0 +1,67 @@
+﻿@page "/fetchdata"
+@using BlazorApp9.Shared
+@inject HttpClient Http
+
+<h1 class="text-muted pb-5">Comparing GetFromJsonAsync vs GetJsonAsync</h1>
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <h1>GetFromJsonAsync: @averageNewTime</h1>
+    <h1>GetJsonAsync: @averageOldTime</h1>
+}
+
+@code {
+    private bool loading = true;
+    private List<long> newTimes = new List<long>();
+    private List<long> oldTimes = new List<long>();
+    private double averageNewTime => newTimes.Count > 0 ? newTimes.Average() : 0;
+    private double averageOldTime => oldTimes.Count > 0 ? oldTimes.Average() : 0;
+    private int iterations = 50;
+
+    private async Task RunNewJsonMethod()
+    {
+        for (int i = 0; i < iterations; i++)
+        {
+            var stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
+            await Http.GetFromJsonAsync<WeatherForecast[]>("WeatherForecast");
+            stopwatch.Stop();
+
+            // throw away the first result because it's usually inherently slower than subsequent requests
+            if (i != 0)
+            {
+                newTimes.Add(stopwatch.ElapsedMilliseconds);
+            }
+        }
+    }
+
+    private async Task RunOldJsonMethod()
+    {
+        for (int i = 0; i < iterations; i++)
+        {
+            var stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
+            await Http.GetJsonAsync<WeatherForecast[]>("WeatherForecast");
+            stopwatch.Stop();
+
+            // throw away the first result because it's usually inherently slower than subsequent requests
+            if (i != 0)
+            {
+                oldTimes.Add(stopwatch.ElapsedMilliseconds);
+            }
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await RunNewJsonMethod();
+        await RunOldJsonMethod();
+        loading = false;
+    }
+
+}
